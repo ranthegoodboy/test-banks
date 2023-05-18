@@ -1,7 +1,7 @@
 import axios from "axios";
-import { isEmpty } from "lodash";
+import _, { isEmpty } from "lodash";
 import type { NextPage } from "next";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { QueryClient, QueryClientProvider, useQuery } from "react-query";
 import { groupByBankName } from "../helper/group-by-bank-name";
 import { BankData } from "../types/bank-data-type";
@@ -16,25 +16,50 @@ const Home: NextPage = () => {
 
   function Banks() {
     const [accountToView, setAccountToView] = useState({});
-    const { isLoading, error, data, isFetching } = useQuery({
+    const [numItems, setNumItems] = useState<number>(10);
+    const { isLoading, error, data, isFetching, refetch } = useQuery({
       queryKey: ["banks"],
       queryFn: () =>
         axios
-          .get("https://random-data-api.com/api/v2/banks?size=20")
+          .get(`https://random-data-api.com/api/v2/banks?size=${numItems}`)
           .then((res) => res.data),
     });
 
-    if (isFetching || isLoading) return <div>Fetching banks...</div>;
+    useEffect(() => {
+      refetch();
+    }, [numItems, refetch]);
+
+    if (isFetching || isLoading) return <div>Fetching Bank Accounts...</div>;
     if (error)
       return <div>Something went wrong. Please reload your browser.</div>;
+
+    const onNumItemsChange = _.debounce(function (val) {
+      if (isNaN(val) || val < 2 || val > 100) {
+        setNumItems(2);
+      } else {
+        setNumItems(val);
+      }
+    }, 1000);
 
     const groupedByBankName = groupByBankName(data);
 
     return (
-      <div className="p-[5rem] ">
-        <div className="flex justify-center font-bold text-3xl mb-10">
+      <div className="p-[5rem]">
+        <div className="flex flex-col gap-2 items-center justify-center font-bold text-3xl mb-10">
           GROUP ACCOUNTS BY BANK NAME WITH VIEW INFO
+          <div className="text-base flex gap-2">
+            Input number of items to fetch (min: 2, max: 100):
+            <input
+              type="number"
+              className="border border-gray-600 w-[70px] pl-1 text-center"
+              defaultValue={numItems.toString()}
+              onChange={(e) =>
+                onNumItemsChange(parseInt(e.currentTarget.value))
+              }
+            />
+          </div>
         </div>
+
         <div className="relative">
           {groupedByBankName.map((bank, index) => (
             <div key={index} className="mb-10">
@@ -55,9 +80,7 @@ const Home: NextPage = () => {
                     </div>
                     <div
                       className="text-blue-600 underline cursor-pointer"
-                      onClick={() => {
-                        setAccountToView(account);
-                      }}
+                      onClick={() => setAccountToView(account)}
                     >
                       View Info
                     </div>
@@ -66,10 +89,12 @@ const Home: NextPage = () => {
               </div>
             </div>
           ))}
-          <AccountInfo
-            account={accountToView}
-            setAccountToView={setAccountToView}
-          ></AccountInfo>
+          {!isEmpty(accountToView) && (
+            <AccountInfo
+              account={accountToView}
+              setAccountToView={setAccountToView}
+            />
+          )}
         </div>
       </div>
     );
@@ -83,11 +108,7 @@ const Home: NextPage = () => {
     setAccountToView: React.Dispatch<React.SetStateAction<BankData>>;
   }) {
     return (
-      <div
-        className={`absolute top-[40%] left-[50%] translate-x-[-50%] translate-y-[-50%]  bg-green-300 m-[auto] p-5 ${
-          !isEmpty(account) ? "block" : "hidden"
-        }`}
-      >
+      <div className="absolute top-[40%] left-[50%] translate-x-[-50%] translate-y-[-50%] bg-green-300 m-[auto] p-5">
         <div className="flex justify-center mb-5 font-bold text-xxl">
           ACCOUNT INFO
         </div>
