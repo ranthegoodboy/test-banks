@@ -17,6 +17,9 @@ const Home: NextPage = () => {
   function Banks() {
     const [accountToView, setAccountToView] = useState({});
     const [numItems, setNumItems] = useState<number>(10);
+    const [isValidItemNum, setIsValidItemNum] = useState<boolean>(
+      isValidItemNumChk(numItems)
+    );
     const { isLoading, error, data, isFetching, refetch } = useQuery({
       queryKey: ["banks"],
       queryFn: () =>
@@ -33,12 +36,17 @@ const Home: NextPage = () => {
     if (error)
       return <div>Something went wrong. Please reload your browser.</div>;
 
+    function isValidItemNumChk(val: number) {
+      if (isNaN(val) || val < 2 || val > 100) return false;
+      return true;
+    }
     const onNumItemsChange = _.debounce(function (val) {
-      if (isNaN(val) || val < 2 || val > 100) {
-        setNumItems(2);
-      } else {
-        setNumItems(val);
+      if (!isValidItemNumChk(val)) {
+        setIsValidItemNum(false);
+        return;
       }
+      setIsValidItemNum(true);
+      setNumItems(val);
     }, 1000);
 
     const groupedByBankName = groupByBankName(data);
@@ -51,7 +59,9 @@ const Home: NextPage = () => {
             Input number of items to fetch (min: 2, max: 100):
             <input
               type="number"
-              className="border border-gray-600 w-[70px] pl-1 text-center"
+              className={`border border-gray-600 w-[70px] pl-1 text-center ${
+                isValidItemNum ? "text-black" : "text-red-500"
+              }`}
               defaultValue={numItems.toString()}
               onChange={(e) =>
                 onNumItemsChange(parseInt(e.currentTarget.value))
@@ -108,7 +118,7 @@ const Home: NextPage = () => {
     setAccountToView: React.Dispatch<React.SetStateAction<BankData>>;
   }) {
     return (
-      <div className="absolute top-[40%] left-[50%] translate-x-[-50%] translate-y-[-50%] bg-green-300 m-[auto] p-5">
+      <div className="fixed top-[40%] left-[50%] translate-x-[-50%] translate-y-[-50%] bg-green-300 m-[auto] p-5">
         <div className="flex justify-center mb-5 font-bold text-xxl">
           ACCOUNT INFO
         </div>
