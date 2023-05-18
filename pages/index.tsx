@@ -26,6 +26,7 @@ const Home: NextPage = () => {
         axios
           .get(`https://random-data-api.com/api/v2/banks?size=${numItems}`)
           .then((res) => res.data),
+      refetchOnWindowFocus: false,
     });
 
     useEffect(() => {
